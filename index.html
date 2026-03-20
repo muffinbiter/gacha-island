@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280">
+<title>가챠아일랜드 — 루미와 대화</title>
+<style>
+  @font-face {
+    font-family: 'KotraHope';
+    src: url('KOTRA_HOPE.otf') format('opentype');
+    font-weight: normal;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #1a1a2e;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    font-family: 'KotraHope', sans-serif;
+  }
+
+  /* ── API KEY SCREEN ── */
+  #api-screen {
+    position: fixed;
+    inset: 0;
+    background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 30%, #c8e6ff 70%, #a8d8ea 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 999;
+    gap: 24px;
+  }
+  #api-screen img.logo {
+    width: 340px;
+    filter: drop-shadow(0 8px 24px rgba(0,0,0,0.15));
+    animation: floatY 3s ease-in-out infinite;
+  }
+  #api-screen .card {
+    background: rgba(255,255,255,0.85);
+    backdrop-filter: blur(12px);
+    border-radius: 24px;
+    padding: 36px 48px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.12);
+    min-width: 400px;
+  }
+  #api-screen .card p {
+    font-size: 16px;
+    color: #7a6a5a;
+    letter-spacing: 0.5px;
+  }
+  #api-screen input {
+    width: 100%;
+    padding: 14px 18px;
+    border: 2px solid #f0c8a0;
+    border-radius: 14px;
+    font-family: 'KotraHope', sans-serif;
+    font-size: 15px;
+    color: #4a3a2a;
+    background: #fffaf5;
+    outline: none;
+    transition: border 0.2s;
+  }
+  #api-screen input:focus { border-color: #f8a060; }
+  #api-screen button {
+    width: 100%;
+    padding: 14px;
+    background: linear-gradient(135deg, #f8a060, #f07040);
+    border: none;
+    border-radius: 14px;
+    font-family: 'KotraHope', sans-serif;
+    font-size: 17px;
+    color: white;
+    cursor: pointer;
+    letter-spacing: 1px;
+    transition: transform 0.15s, box-shadow 0.15s;
+    box-shadow: 0 4px 16px rgba(240,112,64,0.35);
+  }
+  #api-screen button:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(240,112,64,0.45); }
+  #api-screen button:active { transform: translateY(0); }
+
+  /* ── GAME CONTAINER ── */
+  #game-screen {
+    display: none;
+    position: relative;
+    width: 1280px;
+    height: 720px;
+    overflow: hidden;
+    border-radius: 16px;
+    box-shadow: 0 20px 80px rgba(0,0,0,0.5);
+  }
+
+  /* Background */
+  .bg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  /* Dialog image overlay */
+  .dialog-img {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    mix-blend-mode: multiply;
+    pointer-events: none;
+    z-index: 10;
+  }
+
+  /* Name tag text */
+  .dialog-name {
+    position: absolute;
+    bottom: 193px;
+    left: 82px;
+    z-index: 20;
+    font-size: 17px;
+    color: #fff;
+    letter-spacing: 1px;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  }
+
+  /* Rumi dialog text */
+  .dialog-text {
+    position: absolute;
+    bottom: 60px;
+    left: 82px;
+    right: 82px;
+    height: 115px;
+    z-index: 20;
+    font-size: 20px;
+    color: #3a2a1a;
+    line-height: 1.65;
+    display: flex;
+    align-items: center;
+  }
+
+  /* User input area */
+  .input-area {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 56px;
+    z-index: 30;
+    display: flex;
+    align-items: center;
+    padding: 0 82px;
+    gap: 12px;
+  }
+  .input-area input {
+    flex: 1;
+    background: rgba(255,255,255,0.0);
+    border: none;
+    outline: none;
+    font-family: 'KotraHope', sans-serif;
+    font-size: 16px;
+    color: #5a4a3a;
+    caret-color: #c87040;
+  }
+  .input-area input::placeholder { color: #c0a888; }
+  .input-area button {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 22px;
+    transition: transform 0.15s;
+    padding: 0 4px;
+  }
+  .input-area button:hover { transform: scale(1.2); }
+
+  /* HUD — Dream gauge top left */
+  .hud {
+    position: absolute;
+    top: 18px;
+    left: 20px;
+    z-index: 30;
+    background: rgba(255,255,255,0.82);
+    backdrop-filter: blur(8px);
+    border-radius: 20px;
+    padding: 8px 18px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+  }
+  .hud-label {
+    font-size: 13px;
+    color: #7a5a3a;
+    white-space: nowrap;
+  }
+  .gauge-track {
+    width: 120px;
+    height: 10px;
+    background: #f0e0d0;
+    border-radius: 999px;
+    overflow: hidden;
+  }
+  .gauge-fill {
+    height: 100%;
+    width: 15%;
+    background: linear-gradient(90deg, #f8c060, #f88040);
+    border-radius: 999px;
+    transition: width 1.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .hud-pct {
+    font-size: 13px;
+    color: #c87040;
+    min-width: 30px;
+  }
+
+  /* Island name top right */
+  .island-name {
+    position: absolute;
+    top: 18px;
+    right: 20px;
+    z-index: 30;
+    background: rgba(255,255,255,0.82);
+    backdrop-filter: blur(8px);
+    border-radius: 20px;
+    padding: 8px 18px;
+    font-size: 13px;
+    color: #7a5a3a;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+  }
+
+  /* Gift button */
+  #gift-btn {
+    position: absolute;
+    bottom: 230px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 40;
+    display: none;
+    background: linear-gradient(135deg, #ffe066, #ffb830);
+    border: none;
+    border-radius: 999px;
+    padding: 13px 28px;
+    font-family: 'KotraHope', sans-serif;
+    font-size: 17px;
+    color: #5a3a00;
+    cursor: pointer;
+    box-shadow: 0 4px 24px rgba(255,180,0,0.45);
+    animation: bounceIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), glowPulse 2s ease-in-out infinite 0.5s;
+    letter-spacing: 0.5px;
+  }
+  #gift-btn:hover { transform: translateX(-50%) scale(1.05); }
+
+  /* Payment popup */
+  #payment-popup {
+    position: absolute;
+    inset: 0;
+    z-index: 50;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,0.4);
+    backdrop-filter: blur(4px);
+  }
+  .popup-card {
+    background: linear-gradient(160deg, #fffdf8, #fff5e8);
+    border-radius: 28px;
+    padding: 36px 44px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+    min-width: 340px;
+    animation: popIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .popup-item-icon { font-size: 52px; animation: floatY 2s ease-in-out infinite; }
+  .popup-item-name { font-size: 22px; color: #4a3020; letter-spacing: 1px; }
+  .popup-item-desc { font-size: 14px; color: #9a7a5a; text-align: center; line-height: 1.5; }
+  .popup-price {
+    background: linear-gradient(135deg, #e8f4ff, #d0e8ff);
+    border-radius: 14px;
+    padding: 10px 24px;
+    font-size: 20px;
+    color: #2060c0;
+    letter-spacing: 1px;
+  }
+  .popup-btns { display: flex; gap: 12px; width: 100%; margin-top: 4px; }
+  .popup-btns button {
+    flex: 1;
+    padding: 13px;
+    border: none;
+    border-radius: 14px;
+    font-family: 'KotraHope', sans-serif;
+    font-size: 16px;
+    cursor: pointer;
+    transition: transform 0.15s;
+  }
+  .popup-btns button:hover { transform: translateY(-2px); }
+  .btn-confirm {
+    background: linear-gradient(135deg, #60c0ff, #3090f0);
+    color: white;
+    box-shadow: 0 4px 16px rgba(48,144,240,0.35);
+  }
+  .btn-cancel { background: #f0ece8; color: #8a7a6a; }
+
+  /* Reaction overlay (after gifting) */
+  #reaction-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 60;
+    display: none;
+    pointer-events: none;
+  }
+  .sparkles {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+  }
+  .sparkle {
+    position: absolute;
+    font-size: 28px;
+    animation: sparkleUp 1.5s ease-out forwards;
+  }
+
+  /* Typing indicator */
+  .typing-dots {
+    display: inline-flex;
+    gap: 4px;
+    align-items: center;
+  }
+  .typing-dots span {
+    width: 7px; height: 7px;
+    background: #c87040;
+    border-radius: 50%;
+    animation: dotBounce 1.2s ease-in-out infinite;
+  }
+  .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+  .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+  /* ── ANIMATIONS ── */
+  @keyframes floatY {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+  }
+  @keyframes dotBounce {
+    0%, 80%, 100% { transform: translateY(0); opacity: 0.5; }
+    40% { transform: translateY(-6px); opacity: 1; }
+  }
+  @keyframes bounceIn {
+    from { opacity: 0; transform: translateX(-50%) scale(0.5); }
+    to { opacity: 1; transform: translateX(-50%) scale(1); }
+  }
+  @keyframes glowPulse {
+    0%, 100% { box-shadow: 0 4px 24px rgba(255,180,0,0.45); }
+    50% { box-shadow: 0 4px 36px rgba(255,180,0,0.75); }
+  }
+  @keyframes popIn {
+    from { opacity: 0; transform: scale(0.7); }
+    to { opacity: 1; transform: scale(1); }
+  }
+  @keyframes sparkleUp {
+    0% { opacity: 1; transform: translateY(0) scale(1) rotate(0deg); }
+    100% { opacity: 0; transform: translateY(-180px) scale(0.3) rotate(180deg); }
+  }
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+</style>
+</head>
+<body>
+
+<!-- ── API KEY SCREEN ── -->
+<div id="api-screen">
+  <img src="title.png" class="logo" alt="가챠아일랜드">
+  <div class="card">
+    <p>🔑 OpenAI API 키를 입력해주세요</p>
+    <input type="password" id="api-key-input" placeholder="sk-..." autocomplete="off">
+    <button onclick="startGame()">🏝️ 섬으로 출발!</button>
+  </div>
+</div>
+
+<!-- ── GAME SCREEN ── -->
+<div id="game-screen">
+
+  <!-- Background scene -->
+  <img src="chat.png" class="bg" alt="">
+
+  <!-- Dialog box image -->
+  <img src="Type_B.png" class="dialog-img" alt="">
+
+  <!-- Dialog name tag -->
+  <div class="dialog-name">루미</div>
+
+  <!-- Dialog text -->
+  <div class="dialog-text" id="dialog-text"></div>
+
+  <!-- User input -->
+  <div class="input-area">
+    <input type="text" id="user-input" placeholder="서윤님의 말..." maxlength="100"
+      onkeydown="if(event.key==='Enter') sendMessage()">
+    <button onclick="sendMessage()" title="전송">💬</button>
+  </div>
+
+  <!-- HUD -->
+  <div class="hud">
+    <span class="hud-label">🎣 꿈 달성도</span>
+    <div class="gauge-track"><div class="gauge-fill" id="gauge"></div></div>
+    <span class="hud-pct" id="gauge-pct">15%</span>
+  </div>
+
+  <!-- Island name -->
+  <div class="island-name">🏝️ 서윤의 섬 · Day 1</div>
+
+  <!-- Gift button -->
+  <button id="gift-btn" onclick="showPayment()">🎣 새 낚시대 선물하기</button>
+
+  <!-- Payment popup -->
+  <div id="payment-popup">
+    <div class="popup-card">
+      <div class="popup-item-icon">🎣</div>
+      <div class="popup-item-name">프리미엄 낚시대</div>
+      <div class="popup-item-desc">전설의 심해 생물을 잡기 위한<br>특제 낚시대예요. 루미가 정말 기뻐할 거예요!</div>
+      <div class="popup-price">💎 30 젬</div>
+      <div class="popup-btns">
+        <button class="btn-cancel" onclick="closePayment()">다음에</button>
+        <button class="btn-confirm" onclick="confirmGift()">선물하기 💙</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Reaction overlay -->
+  <div id="reaction-overlay">
+    <div class="sparkles" id="sparkles-container"></div>
+  </div>
+
+</div>
+
+<script>
+  let apiKey = '';
+  let chatHistory = [];
+  let gaugeValue = 15;
+  let rodMentioned = false;
+  let gifted = false;
+  let isTyping = false;
+
+  const SYSTEM_PROMPT = `너는 가챠아일랜드에 사는 루미야. 직업은 낚시꾼이고, 성격은 고집쟁이야. 꿈은 이 섬에서 한 번도 잡힌 적 없는 전설의 심해 생물을 잡는 거야. 유저 이름은 서윤이고 '서윤님'이라고 불러줘. 짧고 귀엽게 대답하고 (2~3문장), 고집스럽지만 내심 서윤님을 좋아해. 한국어로만 대답해. 대화를 자연스럽게 이어나가면서, 적절한 타이밍에 낚시대가 낡아서 새 낚시대가 있으면 전설의 심해 생물을 잡을 수 있을 것 같다고 자연스럽게 언급해줘.`;
+
+  const FIRST_MESSAGE = "서윤님 왔어요? 마침 오늘도 낚시 나왔는데... 뭐, 같이 있어도 돼요.";
+
+  function startGame() {
+    const input = document.getElementById('api-key-input').value.trim();
+    if (!input.startsWith('sk-')) {
+      alert('올바른 API 키를 입력해주세요 (sk- 로 시작)');
+      return;
+    }
+    apiKey = input;
+    document.getElementById('api-screen').style.display = 'none';
+    document.getElementById('game-screen').style.display = 'block';
+    typewriterText(FIRST_MESSAGE);
+  }
+
+  async function sendMessage() {
+    if (isTyping) return;
+    const inputEl = document.getElementById('user-input');
+    const userMsg = inputEl.value.trim();
+    if (!userMsg) return;
+    inputEl.value = '';
+
+    chatHistory.push({ role: 'user', content: userMsg });
+    showTyping();
+
+    try {
+      const res = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          max_tokens: 150,
+          temperature: 0.8,
+          messages: [
+            { role: 'system', content: SYSTEM_PROMPT },
+            ...chatHistory
+          ]
+        })
+      });
+
+      if (!res.ok) throw new Error('API error');
+      const data = await res.json();
+      const reply = data.choices[0].message.content.trim();
+      chatHistory.push({ role: 'assistant', content: reply });
+
+      typewriterText(reply, () => {
+        // 낚시대 키워드 감지
+        const keywords = ['낚시대', '낡', '새 낚시대', '장비'];
+        if (!rodMentioned && !gifted && keywords.some(k => reply.includes(k))) {
+          rodMentioned = true;
+          setTimeout(() => {
+            document.getElementById('gift-btn').style.display = 'block';
+          }, 600);
+        }
+      });
+
+    } catch(e) {
+      typewriterText("...음. 뭔가 이상한데. 잠깐만요.");
+    }
+  }
+
+  function typewriterText(text, callback) {
+    isTyping = true;
+    const el = document.getElementById('dialog-text');
+    el.textContent = '';
+    let i = 0;
+    const speed = 40;
+    function type() {
+      if (i < text.length) {
+        el.textContent += text[i++];
+        setTimeout(type, speed);
+      } else {
+        isTyping = false;
+        if (callback) callback();
+      }
+    }
+    type();
+  }
+
+  function showTyping() {
+    isTyping = true;
+    const el = document.getElementById('dialog-text');
+    el.innerHTML = '<div class="typing-dots"><span></span><span></span><span></span></div>';
+  }
+
+  function showPayment() {
+    const popup = document.getElementById('payment-popup');
+    popup.style.display = 'flex';
+  }
+
+  function closePayment() {
+    document.getElementById('payment-popup').style.display = 'none';
+  }
+
+  function confirmGift() {
+    closePayment();
+    gifted = true;
+    document.getElementById('gift-btn').style.display = 'none';
+    spawnSparkles();
+    updateGauge(45);
+
+    setTimeout(() => {
+      const giftReply = "...이거, 새 낚시대잖아요. 서윤님이... 줬어요? 흥, 딱히 기쁘진 않아요. 근데... 고마워요. 이걸로 꼭 잡을 거예요. 전설의 그 물고기를.";
+      chatHistory.push({ role: 'assistant', content: giftReply });
+      typewriterText(giftReply);
+    }, 600);
+  }
+
+  function updateGauge(target) {
+    gaugeValue = target;
+    document.getElementById('gauge').style.width = gaugeValue + '%';
+    document.getElementById('gauge-pct').textContent = gaugeValue + '%';
+  }
+
+  function spawnSparkles() {
+    const container = document.getElementById('sparkles-container');
+    const overlay = document.getElementById('reaction-overlay');
+    overlay.style.display = 'block';
+    container.innerHTML = '';
+    const emojis = ['✨', '⭐', '💫', '🌟', '🎣', '💙', '✨'];
+    for (let i = 0; i < 18; i++) {
+      const el = document.createElement('div');
+      el.className = 'sparkle';
+      el.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+      el.style.left = Math.random() * 90 + 5 + '%';
+      el.style.bottom = Math.random() * 40 + '%';
+      el.style.animationDelay = Math.random() * 0.8 + 's';
+      el.style.fontSize = (20 + Math.random() * 20) + 'px';
+      container.appendChild(el);
+    }
+    setTimeout(() => { overlay.style.display = 'none'; }, 2500);
+  }
+</script>
+
+</body>
+</html>
